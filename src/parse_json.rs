@@ -77,8 +77,10 @@ pub fn get_rot_cards() -> Vec<Card> {
         }
         let mut rot_card: Vec<Card> = Vec::new();
         for card in all_cards {
-            if (card.card_set_id > mx_expac - ROT_EXP_CNT)
-                && (card.card_set_id <= mx_expac)
+            if ((card.card_set_id > mx_expac - ROT_EXP_CNT)
+                && (card.card_set_id <= mx_expac))
+                || (card.card_set_id / 10000 == 7)
+                || (card.card_set_id == 10000)
             {
                 rot_card.push(card);
             }
