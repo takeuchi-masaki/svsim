@@ -2,12 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 lazy_static! {
-    static ref KEY: HashMap<char, usize> = {
-        let mut map = HashMap::new();
+    static ref KEY: HashMap<char, u32> = {
+        let mut map: HashMap<char, u32> = HashMap::new();
         let keystr =
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
         for (i, c) in keystr.chars().enumerate() {
-            map.insert(c, i);
+            map.insert(c, i.try_into().unwrap());
         }
         map
     };
@@ -21,8 +21,8 @@ struct Resp {
     errors: Vec<String>,
 }
 
-fn cardhash_to_cardid(card_hash: String) -> usize {
-    let mut id: usize = 0;
+pub fn cardhash_to_cardid(card_hash: String) -> u32 {
+    let mut id: u32 = 0;
     for c in card_hash.chars() {
         id *= 64;
         id += KEY.get(&c).expect("no hash found");
@@ -30,8 +30,8 @@ fn cardhash_to_cardid(card_hash: String) -> usize {
     return id;
 }
 
-fn deckhash_to_cardid_list(deck_hash: String) -> Vec<usize> {
-    let mut cardid_list: Vec<usize> = Vec::new();
+pub fn deckhash_to_cardid_list(deck_hash: String) -> Vec<u32> {
+    let mut cardid_list: Vec<u32> = Vec::new();
     let mut prev_hash = deck_hash.clone().split_off(4);
     for _ in 0..40 {
         let mut next_hash: String = prev_hash.clone();
@@ -45,7 +45,7 @@ fn deckhash_to_cardid_list(deck_hash: String) -> Vec<usize> {
     return cardid_list;
 }
 
-pub fn deckcode_to_decklist(deckcode: &str) -> Vec<usize> {
+pub fn deckcode_to_decklist(deckcode: &str) -> Vec<u32> {
     assert!(deckcode.len() == 4);
     let url = "https://shadowverse-portal.com/api/v1/deck/import";
     let params = [("format", "json"), ("deck_code", &deckcode)];

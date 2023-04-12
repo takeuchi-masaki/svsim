@@ -2,8 +2,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::{fs::File, io::Write};
 
-const TOKEN_SET_ID: i32 = 90000;
-const ROT_EXP_CNT: i32 = 5;
+const TOKEN_SET_ID: u32 = 90000;
+const ROT_EXP_CNT: u32 = 5;
 
 fn deserialize_null_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
@@ -15,16 +15,16 @@ where
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Card {
-    pub card_id: usize,
-    pub foil_card_id: i32,
-    pub card_set_id: i32,
+pub struct JsonCard {
+    pub card_id: u32,
+    pub foil_card_id: u32,
+    pub card_set_id: u32,
     #[serde(deserialize_with = "deserialize_null_default")]
     pub card_name: String,
     pub card_name_ruby: String,
-    pub is_foil: i32,
-    pub char_type: i32,
-    pub clan: i32,
+    pub is_foil: u32,
+    pub char_type: u32,
+    pub clan: u32,
     pub tribe_name: String,
     pub skill: String,
     pub skill_condition: String,
@@ -35,39 +35,45 @@ pub struct Card {
     pub org_skill_disc: String,
     pub evo_skill_disc: String,
     pub org_evo_skill_disc: String,
-    pub cost: i32,
-    pub atk: i32,
-    pub life: i32,
-    pub evo_atk: i32,
-    pub evo_life: i32,
-    pub rarity: i32,
-    pub get_red_ether: i32,
-    pub use_red_ether: i32,
+    pub cost: u32,
+    pub atk: u32,
+    pub life: u32,
+    pub evo_atk: u32,
+    pub evo_life: u32,
+    pub rarity: u32,
+    pub get_red_ether: u32,
+    pub use_red_ether: u32,
     pub description: String,
     pub evo_description: String,
     pub cv: String,
     #[serde(deserialize_with = "deserialize_null_default")]
     pub copyright: String,
-    pub base_card_id: usize,
-    pub normal_card_id: i32,
-    pub format_type: i32,
-    pub restricted_count: i32,
-    pub restricted_count_co_main: i32,
-    pub restricted_count_co_sub: i32,
+    pub base_card_id: u32,
+    pub normal_card_id: u32,
+    pub format_type: u32,
+    pub restricted_count: u32,
+    pub restricted_count_co_main: u32,
+    pub restricted_count_co_sub: u32,
 }
 
-pub fn get_rot_cards() -> Vec<Card> {
+pub fn get_all_cards() -> Vec<JsonCard> {
+    let all_filename = "data/class0.json";
+    let file = File::open(all_filename).expect("bad class0.json");
+    let data: Value = serde_json::from_reader(file).expect("can't read json");
+    let card_vals: Value = data["data"]["cards"].clone();
+    let all_cards: Vec<JsonCard> =
+        serde_json::from_value(card_vals).expect("type parse error");
+    return all_cards;
+}
+
+pub fn get_rot_cards() -> Vec<JsonCard> {
     let rot_filename = "data/rot_cards.json";
     let file = File::open(rot_filename);
     if file.is_err() {
-        let all_filename = "data/class0.json";
-        let file2 = File::open(all_filename).expect("bad class0.json");
-        let data: Value =
-            serde_json::from_reader(file2).expect("can't read json");
-        let card_vals: Value = data["data"]["cards"].clone();
-        let all_cards: Vec<Card> =
-            serde_json::from_value(card_vals).expect("type parse error");
+        let all_cards = get_all_cards();
         let mut mx_expac = 10000;
+
+        // find current latest set - regular sets start with 1
         for card in &all_cards {
             if (card.card_set_id < TOKEN_SET_ID)
                 && (card.card_set_id / 10000 == 1)
@@ -75,7 +81,9 @@ pub fn get_rot_cards() -> Vec<Card> {
                 mx_expac = std::cmp::max(mx_expac, card.card_set_id);
             }
         }
-        let mut rot_card: Vec<Card> = Vec::new();
+
+        // get all current rotation cards && special cards
+        let mut rot_card: Vec<JsonCard> = Vec::new();
         for card in all_cards {
             if ((card.card_set_id > mx_expac - ROT_EXP_CNT)
                 && (card.card_set_id <= mx_expac))
@@ -85,6 +93,8 @@ pub fn get_rot_cards() -> Vec<Card> {
                 rot_card.push(card);
             }
         }
+
+        // save all the rot cards into rot_cards.json
         let json_str = serde_json::to_string_pretty(&rot_card)
             .expect("cannot deserialize Card");
         let mut rot_file =
@@ -94,9 +104,10 @@ pub fn get_rot_cards() -> Vec<Card> {
             .expect("bad rot file write");
         return rot_card;
     }
+
     let data: Value = serde_json::from_reader(file.expect("bad file"))
         .expect("can't read json");
-    let card_vec: Vec<Card> =
+    let card_vec: Vec<JsonCard> =
         serde_json::from_value(data).expect("type parse error");
     return card_vec;
 }
